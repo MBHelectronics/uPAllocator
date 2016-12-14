@@ -15,8 +15,6 @@ typedef value_type const& const_reference; \
 typedef std::size_t       size_type;       \
 typedef std::ptrdiff_t    difference_type; \
 
-// space for only one object per request can
-// be reserved with this allocator implementation
 
 template <typename T>
 struct max_allocations {
@@ -24,18 +22,18 @@ struct max_allocations {
 };
 
 template <typename T>
-class arduino_allocator_policy {
+class uP_allocator_policy {
  public:
   ALLOCATOR_TRAITS(T)
 
   template <typename U>
   struct rebind {
-    typedef arduino_allocator_policy<U> other;
+    typedef uP_allocator_policy<U> other;
   };
 
   // ctr
-  arduino_allocator_policy(size_type num_blocks,
-                           size_type size_of_each_block = sizeof(T))
+  uP_allocator_policy(size_type num_blocks,
+                      size_type size_of_each_block = sizeof(T))
       : _m_num_blocks(num_blocks),
         _m_size_of_each_block(size_of_each_block),
         _m_num_free_blocks(num_blocks),
@@ -45,14 +43,14 @@ class arduino_allocator_policy {
         _m_next(_m_mem_start) {}
 
   // dtr
-  ~arduino_allocator_policy() {
+  ~uP_allocator_policy() {
     delete[] reinterpret_cast<uint8_t*>(_m_mem_start);
     _m_mem_start = reinterpret_cast<uintptr_t>(nullptr);
   }
 
   // copy ctr
   template <typename U>
-  arduino_allocator_policy(arduino_allocator_policy<U> const& other) {}
+  uP_allocator_policy(uP_allocator_policy<U> const& other) {}
 
   // Allocate memory
   pointer allocate(size_type count = sizeof(T), const_pointer /* hint */ = 0) {

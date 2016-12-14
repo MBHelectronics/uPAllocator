@@ -20,7 +20,7 @@ typedef std::ptrdiff_t    difference_type; \
 
 template <typename T>
 struct max_allocations {
-  enum { value = static_cast<std::size_t>(sizeof(T) / sizeof(T)) };
+  enum { value = static_cast<std::size_t>(sizeof(T)) };
 };
 
 template <typename T>
@@ -37,13 +37,12 @@ class arduino_allocator_policy {
   arduino_allocator_policy(size_type num_blocks,
                            size_type size_of_each_block = sizeof(T))
       : _m_num_blocks(num_blocks),
-        _m_size_of_each_block(0),
-        _m_num_free_blocks(0),
+        _m_size_of_each_block(size_of_each_block),
+        _m_num_free_blocks(num_blocks),
         _m_num_initialized(0),
         _m_mem_start(reinterpret_cast<uintptr_t>(
-            new uint8_t[_m_size_of_each_block * _m_num_blocks]))
-
-  {}
+            new uint8_t[_m_size_of_each_block * _m_num_blocks])),
+        _m_next(_m_mem_start) {}
 
   // dtr
   ~arduino_allocator_policy() {
@@ -56,7 +55,7 @@ class arduino_allocator_policy {
   arduino_allocator_policy(arduino_allocator_policy<U> const& other) {}
 
   // Allocate memory
-  pointer allocate(size_type count = 1, const_pointer /* hint */ = 0) {
+  pointer allocate(size_type count = sizeof(T), const_pointer /* hint */ = 0) {
     if (count > max_size()) {
       throw std::bad_alloc();
     }

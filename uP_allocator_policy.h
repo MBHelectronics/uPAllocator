@@ -15,6 +15,7 @@ typedef value_type const& const_reference; \
 typedef std::size_t       size_type;       \
 typedef std::ptrdiff_t    difference_type; \
 
+namespace uP_allocator {
 
 template <typename T>
 struct max_allocations {
@@ -117,5 +118,6 @@ class uP_allocator_policy {
   // Max number of objects that can be allocated in one call
   size_type max_size() const { return max_allocations<T>::value; }
 };
+}
 
-#endif  // ALLOCATOR_POLICY_H_INCLUDED
+#endif  // UP_ALLOCATOR_POLICY_H_INCLUDED

@@ -15,12 +15,11 @@ typedef value_type const& const_reference; \
 typedef std::size_t       size_type;       \
 typedef std::ptrdiff_t    difference_type; \
 
-// space for only one object per request can
-// be reserved with the current allocator implementation
+
 namespace uP_allocator {
 
 template <typename T>
-struct max_allocations {
+struct max_allocation {
   enum { value = static_cast<std::size_t>(sizeof(T) / sizeof(uint8_t)) };
 };
 
@@ -36,7 +35,7 @@ class uP_allocator_policy {
 
   // ctr
   uP_allocator_policy(size_type num_blocks,
-                      size_type size_of_each_block = max_allocations<T>::value)
+                      size_type size_of_each_block = max_allocation<T>::value)
       : _m_num_blocks(num_blocks),
         _m_size_of_each_block(size_of_each_block),
         _m_num_free_blocks(num_blocks),
@@ -48,6 +47,11 @@ class uP_allocator_policy {
   // dtr
   ~uP_allocator_policy() {
     if (!std::is_integral<T>()) {
+      DEBUG_MSG("Pool block of size: " << _m_size_of_each_block * _m_num_blocks
+                                       << " deleted at address: "
+                                       << reinterpret_cast<void*>(_m_mem_start)
+                                       << "\n");
+
       operator delete[](reinterpret_cast<uint8_t*>(_m_mem_start));
     }
     _m_mem_start = reinterpret_cast<uintptr_t>(nullptr);
@@ -59,9 +63,10 @@ class uP_allocator_policy {
 
   // Allocate memory
   pointer allocate(size_type count = 1, const_pointer /* hint */ = nullptr) {
-    std::cout << count << "\n";
+    DEBUG_MSG("num blocks requested: " << count << "\n");
+    DEBUG_MSG("num free blocks: " << _m_num_free_blocks << "\n");
 
-    if (count > _m_num_free_blocks * max_size()) {
+    if (count > _m_num_free_blocks) {
       throw std::bad_alloc();
     }
 
@@ -69,25 +74,28 @@ class uP_allocator_policy {
     // increment for allocation
     if (_m_num_initialized < _m_num_blocks) {
       auto p = reinterpret_cast<size_t*>(_addr_from_index(_m_num_initialized));
-      *p = _m_num_initialized + 1;
-      _m_num_initialized++;
+      *p = _m_num_initialized + count;
+      _m_num_initialized += count;
     }
 
     auto ret = static_cast<pointer>(nullptr);
 
     // get address of next free block in pool
-    if (_m_num_free_blocks > 0) {
+    if (0 < _m_num_free_blocks) {
       ret = reinterpret_cast<pointer>(_m_next);
       --_m_num_free_blocks;
 
       // get address of next free block header from block to be allocated,
       // store in _m_next
-      if (_m_num_free_blocks != 0) {
+      if (0 != _m_num_free_blocks) {
         _m_next = _addr_from_index(*reinterpret_cast<size_t*>(_m_next));
       } else {
         _m_next = reinterpret_cast<uintptr_t>(static_cast<T*>(nullptr));
       }
     }
+    DEBUG_MSG("One block of size: " << sizeof(*ret) * count
+                                    << " allocated at address: " << ret
+                                    << "\n");
     return ret;
   }
 
@@ -98,11 +106,19 @@ class uP_allocator_policy {
     if (reinterpret_cast<size_t*>(_m_next) != nullptr) {
       *tmp = _index_from_addr(_m_next);
       _m_next = reinterpret_cast<uintptr_t>(&(*p));
+      DEBUG_MSG("One block of size: "
+                << sizeof(*p) << " deallocated at address: " << p << "\n");
     } else {
       *tmp = _m_num_blocks;
       _m_next = reinterpret_cast<uintptr_t>(&(*p));
     }
     ++_m_num_free_blocks;
+    --count;
+
+    if (0 == count) return;
+    auto prev_ptr =
+        reinterpret_cast<pointer>(_addr_from_index(_m_num_initialized - 1));
+    deallocate(prev_ptr, count);
   }
 
  private:
@@ -123,7 +139,7 @@ class uP_allocator_policy {
   }
 
   // Max number of bytes that can be held in a block
-  size_type max_size() const { return max_allocations<T>::value; }
+  size_type max_size() const { return max_allocation<T>::value; }
 };
 }
 

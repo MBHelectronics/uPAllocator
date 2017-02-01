@@ -118,7 +118,7 @@ class static_class_wrapper
 
     /* move ctr */
 
-    _class_ptr_s(const _class_ptr_s<T>&& other) : _class_ptr(other._class_ptr) {
+    _class_ptr_s(const _class_ptr_s<T>&& other) noexcept : _class_ptr(other._class_ptr) {
       other._class_ptr = nullptr;
     }
 

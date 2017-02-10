@@ -10,8 +10,6 @@ template <template <typename, size_t, typename, typename> class Derived,
           size_t N>
 struct uP_smart_ptr_allocator_policy {
  public:
-  uP_smart_ptr_allocator_policy() = default;
-
   template <typename T_obj, size_t N1 = N,
             typename PolicyT1 = uP_allocator_policy<T_obj>,
             typename TraitsT1 = object_traits<T_obj>>
